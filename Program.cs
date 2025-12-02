@@ -27,23 +27,22 @@ namespace StewardessPlanning
 
         public static void Main()
         {
-            // C5 (init): oldExperiencedWorker[Jan] = initialExperiencedWorker
+            // init: oldExperiencedWorker[Jan] = initialExperiencedWorker
             oldExperiencedWorker[0] = initialExperiencedWorker;
 
-            // C6 (init): newExperiencedWorker[Jan] = 0
+            // init: newExperiencedWorker[Jan] = 0
             newExperiencedWorker[0] = 0.0;
 
-            // C4 (definitie): experiencedWorker[t] = oldExperiencedWorker[t] + newExperiencedWorker[t]
+            // Defenitie: experiencedWorker[t] = oldExperiencedWorker[t] + newExperiencedWorker[t]
             updateExperiencedWorkers();
 
-            // C1–C3 (domein): variabelen niet-negatief (optioneel afdwingen, nu niet aangeroepen)
-            // validateNonNegative(trainee);
-            // validateNonNegative(newExperiencedWorker);
-            // validateNonNegative(oldExperiencedWorker);
-            // validateNonNegative(experiencedWorker);
+            updateDynamics();
+
+            updateAvailableHours();
+
         }
 
-        // Houd experiencedWorker consistent met old/new (C4)
+        // Houd experiencedWorker consistent met old/new 
         static void updateExperiencedWorkers()
         {
             for (int t = 0; t < experiencedWorker.Length; t++)
@@ -52,7 +51,27 @@ namespace StewardessPlanning
             }
         }
 
-        // Optioneel: dwing niet-negativiteit af zonder fouten te gooien (C1–C3)
+
+        // trainees worden new ervaren, new ervaren worden old ervaren workers in t + 1  
+        static void updateDynamics()
+        {
+            for (int t = 0; t < Months.Length - 1; t++)
+            {
+                oldExperiencedWorker[t + 1] = (1.0 - quitRate) * oldExperiencedWorker[t] + newExperiencedWorker[t];
+                newExperiencedWorker[t + 1] = trainee[t];
+            }
+        }
+
+        // beschikbare uren berekenen per maand 
+        static void updateAvailableHours()
+        {
+            for (int t = 0; t < availableHours.Length; t++)
+            {
+                availableHours[t] = experiencedWorkerHours * experiencedWorker[t] - trainingHours * trainee[t];
+            }
+        }
+
+        // kan waarschijnlijk weg, maar dit is om af te dwingen dat arrays niet-negatief zijn
         static void validateNonNegative(double[] arr)
         {
             for (int i = 0; i < arr.Length; i++)
