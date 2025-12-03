@@ -7,8 +7,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+
+
   <ItemGroup>
     <PackageReference Include="Gurobi.Optimizer" Version="13.0.0" />
+     <Compile Remove="gurobi_test.cs" />
   </ItemGroup>
 
 </Project>

@@ -27,12 +27,20 @@ namespace StewardessPlanning
 
         public static void Main()
         {
-            // Voor testdoeleinden: evalueer een paar plannen (zonder output).
-            // Inspecteer r0/r1/r2 in de debugger.
-            var r0 = EvaluateForPlan(new double[] { 0, 0, 0, 0, 0, 0 });      // verwacht infeasible
-            var r1 = EvaluateForPlan(new double[] { 6, 0, 0, 0, 0, 0 });      // check dynamiek en uren
-            var r2 = EvaluateForPlan(new double[] { 8, 4, 0, 0, 0, 0 });      // vaak haalbaarder, hogere kosten
+            var r0 = EvaluateForPlan(new double[] { 0, 0, 0, 0, 0, 0 });
+            Console.WriteLine("Test 0: trainee = [0,0,0,0,0,0]");
+            Console.WriteLine($"  Feasible: {r0.AllFeasible}");
+            Console.WriteLine($"  TotalCost: {r0.TotalCost:F2}");
 
+            var r1 = EvaluateForPlan(new double[] { 6, 0, 0, 0, 0, 0 });
+            Console.WriteLine("Test 1: trainee = [6,0,0,0,0,0]");
+            Console.WriteLine($"  Feasible: {r1.AllFeasible}");
+            Console.WriteLine($"  TotalCost: {r1.TotalCost:F2}");
+
+            var r2 = EvaluateForPlan(new double[] { 8, 4, 0, 0, 0, 0 });
+            Console.WriteLine("Test 2: trainee = [8,4,0,0,0,0]");
+            Console.WriteLine($"  Feasible: {r2.AllFeasible}");
+            Console.WriteLine($"  TotalCost: {r2.TotalCost:F2}");
         }
 
         static void SetTraineePlan(double[] plan)

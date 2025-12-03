@@ -1,5 +1,5 @@
 
-Gurobi 13.0.0 (mac64[arm], .NET) logging started Tue Dec  2 15:15:15 2025
+Gurobi 13.0.0 (mac64[arm], .NET) logging started Wed Dec  3 18:22:48 2025
 
 Set parameter Username
 Set parameter LicenseID to value 2748832
@@ -23,7 +23,7 @@ Presolve removed 1 rows and 10 columns
 Presolve time: 0.00s
 Presolve: All rows and columns removed
 
-Explored 0 nodes (0 simplex iterations) in 0.00 seconds (0.00 work units)
+Explored 0 nodes (0 simplex iterations) in 0.01 seconds (0.00 work units)
 Thread count was 1 (of 8 available processors)
 
 Solution count 2: 53 46 
