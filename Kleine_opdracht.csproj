@@ -5,13 +5,15 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- Dwing het entry point af: namespace.ClassName -->
+    <StartupObject>StewardessPlanning.Program</StartupObject>
   </PropertyGroup>
-
-
 
   <ItemGroup>
     <PackageReference Include="Gurobi.Optimizer" Version="13.0.0" />
-     <Compile Remove="gurobi_test.cs" />
+    <!-- Sluit expliciet het Gurobi testbestand uit, voor de zekerheid ook eventuele submap -->
+    <Compile Remove="gurobi_test.cs" />
+    <Compile Remove="GurobiTest\**\*.cs" />
   </ItemGroup>
 
 </Project>

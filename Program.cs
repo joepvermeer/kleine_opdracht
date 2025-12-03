@@ -38,7 +38,7 @@ namespace StewardessPlanning
             Console.WriteLine($"  TotalCost: {r1.TotalCost:F2}");
 
             var r2 = EvaluateForPlan(new double[] { 8, 4, 0, 0, 0, 0 });
-            Console.WriteLine("Test 2: trainee = [8,4,0,0,0,0]");
+            Console.WriteLine("Test 2: trainee = [18,18,18,18,18,0]");
             Console.WriteLine($"  Feasible: {r2.AllFeasible}");
             Console.WriteLine($"  TotalCost: {r2.TotalCost:F2}");
         }
