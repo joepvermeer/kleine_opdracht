@@ -27,19 +27,43 @@ namespace StewardessPlanning
 
         public static void Main()
         {
-            // init: oldExperiencedWorker[Jan] = initialExperiencedWorker
-            oldExperiencedWorker[0] = initialExperiencedWorker;
+            // Voor testdoeleinden: evalueer een paar plannen (zonder output).
+            // Inspecteer r0/r1/r2 in de debugger.
+            var r0 = EvaluateForPlan(new double[] { 0, 0, 0, 0, 0, 0 });      // verwacht infeasible
+            var r1 = EvaluateForPlan(new double[] { 6, 0, 0, 0, 0, 0 });      // check dynamiek en uren
+            var r2 = EvaluateForPlan(new double[] { 8, 4, 0, 0, 0, 0 });      // vaak haalbaarder, hogere kosten
 
-            // init: newExperiencedWorker[Jan] = 0
+        }
+
+        static void SetTraineePlan(double[] plan)
+        {
+            if (plan == null || plan.Length != trainee.Length)
+                throw new ArgumentException("Lengte van trainees-plan ongeldig.");
+            for (int i = 0; i < trainee.Length; i++)
+            {
+                trainee[i] = plan[i] < 0 ? 0 : plan[i];
+            }
+        }
+        
+        // Voert een volledige evaluatie uit voor het huidige trainees-plan:
+        // C5/C6 init, C7 dynamiek, C4 experienced, C8 uren, en berekent kosten.
+        static void EvaluatePlan()
+        {
+            // Init (C5, C6)
+            oldExperiencedWorker[0] = initialExperiencedWorker;
             newExperiencedWorker[0] = 0.0;
 
-            // Defenitie: experiencedWorker[t] = oldExperiencedWorker[t] + newExperiencedWorker[t]
-            updateExperiencedWorkers();
-
+            // Dynamiek (C7)
             updateDynamics();
 
+            // Definitie experienced (C4)
+            updateExperiencedWorkers();
+
+            // Capaciteit (C8)
             updateAvailableHours();
 
+            // Kosten (Iteratie 5)
+            updateMonthlyCost();
         }
 
         // Houd experiencedWorker consistent met old/new 
@@ -71,6 +95,42 @@ namespace StewardessPlanning
             }
         }
 
+        // Controleer of maand t haalbaar is: beschikbare uren >= vraag
+        static bool isFeasibleMonth(int t)
+        {
+            return availableHours[t] >= Demand[t];
+        }
+
+
+        // Controleer of alle maanden haalbaar zijn voor het huidige trainee-plan
+        static bool allFeasible()
+        {
+            for (int t = 0; t < Months.Length; t++)
+            {
+                if (!isFeasibleMonth(t)) return false;
+            }
+            return true;
+        }
+
+        static void updateMonthlyCost()
+        {
+            for (int t = 0; t < monthlyCost.Length; t++)
+            {
+                monthlyCost[t] = experiencedWorkerCost * experiencedWorker[t] + traineeCost * trainee[t];
+            }
+        }
+
+        static double totalCost()
+        {
+            double sum = 0.0;
+            for (int t = 0; t < monthlyCost.Length; t++)
+            {
+                sum += monthlyCost[t];
+            }
+            return sum;
+        }
+
+
         // kan waarschijnlijk weg, maar dit is om af te dwingen dat arrays niet-negatief zijn
         static void validateNonNegative(double[] arr)
         {
@@ -78,6 +138,22 @@ namespace StewardessPlanning
             {
                 if (arr[i] < 0) arr[i] = 0;
             }
+        }
+
+        // Resultaatcontainer voor snelle tests
+        public record PlanResult(bool AllFeasible, double TotalCost, double[] AvailableHours, double[] ExperiencedWorker);
+
+        // Evalueer een extern meegegeven trainees-plan en geef kernresultaten terug (geen prints).
+        static PlanResult EvaluateForPlan(double[] plan)
+        {
+            SetTraineePlan(plan);
+            EvaluatePlan(); // init + dynamiek + experienced + uren + kosten
+            return new PlanResult(
+                AllFeasible: allFeasible(),
+                TotalCost: totalCost(),
+                AvailableHours: (double[])availableHours.Clone(),
+                ExperiencedWorker: (double[])experiencedWorker.Clone()
+            );
         }
     }
 }
