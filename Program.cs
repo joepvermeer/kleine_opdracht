@@ -1,4 +1,5 @@
 ﻿using System;
+using Gurobi; 
 
 namespace StewardessPlanning
 {
@@ -7,6 +8,8 @@ namespace StewardessPlanning
         // Parameters
         static readonly string[] Months = { "Jan", "Feb", "Mrt", "Apr", "Mei", "Jun" };
         static readonly double[] Demand = { 8000, 9000, 7000, 10000, 9000, 8000 };
+
+        const double feasibilityEpsilon = 1e-6;
 
         const double experiencedWorkerHours = 150.0; // uren beschikbaar per ervaren werknemer per maand
         const double trainingHours = 100.0;          // uren verlies per trainee in de opleidingsmaand
@@ -27,7 +30,101 @@ namespace StewardessPlanning
 
         public static void Main()
         {
+            try
+                {
+                    using var env = new GRBEnv(true);
+                    env.Start();
 
+                    using var model = new GRBModel(env);
+
+                    int T = Months.Length;
+
+                    // Vars
+                    var traineeVar = new GRBVar[T];
+                    var oldVar = new GRBVar[T];
+                    var newVar = new GRBVar[T];
+                    var expVar = new GRBVar[T];
+                    var availVar = new GRBVar[T];
+
+                    for (int t = 0; t < T; t++)
+                    {
+                        traineeVar[t] = model.AddVar(0.0, GRB.INFINITY, 0.0, GRB.CONTINUOUS, $"trainee[{t}]"); 
+                        oldVar[t]     = model.AddVar(0.0, GRB.INFINITY, 0.0, GRB.CONTINUOUS, $"old[{t}]");
+                        newVar[t]     = model.AddVar(0.0, GRB.INFINITY, 0.0, GRB.CONTINUOUS, $"new[{t}]");
+                        expVar[t]     = model.AddVar(0.0, GRB.INFINITY, 0.0, GRB.CONTINUOUS, $"exp[{t}]");
+                        availVar[t]   = model.AddVar(0.0, GRB.INFINITY, 0.0, GRB.CONTINUOUS, $"avail[{t}]");
+                    }
+
+                    // Initialisatie
+                    model.AddConstr(oldVar[0] == initialExperiencedWorker, "init_old0");
+                    model.AddConstr(newVar[0] == 0.0, "init_new0");
+                    model.AddConstr(traineeVar[T - 1] == 0.0, "noTrainLast"); 
+                    
+
+                    // Dynamiek en definities
+                    for (int t = 0; t < T; t++)
+                    {
+                        // experienced definitie
+                        model.AddConstr(expVar[t] == oldVar[t] + newVar[t], $"def_exp[{t}]");
+
+                        // capaciteit
+                        model.AddConstr(availVar[t] == experiencedWorkerHours * expVar[t] - trainingHours * traineeVar[t], $"def_avail[{t}]");
+
+                        // vraagconstraint
+                        model.AddConstr(availVar[t] >= Demand[t], $"cap[{t}]");
+
+                        // dynamiek (voor t+1)
+                        if (t < T - 1)
+                        {
+                            model.AddConstr(oldVar[t + 1] == (1.0 - quitRate) * oldVar[t] + newVar[t], $"dyn_old[{t+1}]");
+                            model.AddConstr(newVar[t + 1] == traineeVar[t], $"dyn_new[{t+1}]");
+                        }
+                    }
+
+                    // Objective: minimize kosten
+                    GRBLinExpr obj = 0.0;
+                    for (int t = 0; t < T; t++)
+                    {
+                        obj += experiencedWorkerCost * expVar[t] + traineeCost * traineeVar[t];
+                    }
+                    model.SetObjective(obj, GRB.MINIMIZE);
+
+                    // Solve
+                    model.Optimize();
+
+                    if (model.Status == (int)GRB.Status.OPTIMAL || model.Status == (int)GRB.Status.SUBOPTIMAL)
+                    {
+                        var plan = new double[T];
+                        for (int t = 0; t < T; t++)
+                        {
+                            var x = traineeVar[t].X;
+                            // Zet minuscule negatieve naar 0 en voorkom -0
+                            plan[t] = ClampNonNegative(x);
+                        }
+                        // Eventueel rond heel dicht bij integer naar integer als je dat wil voor presentatiedoeleinden:
+                        // plan[t] = Math.Abs(plan[t] - Math.Round(plan[t])) < 1e-9 ? Math.Round(plan[t]) : plan[t];
+
+                        SetTraineePlan(plan);
+                        EvaluatePlan();
+
+                        Console.WriteLine("Optimal trainee plan: [" + string.Join(",", plan) + "]");
+                        Console.WriteLine("Feasible: " + allFeasible());
+                        Console.WriteLine("TotalCost (sim): " + totalCost().ToString("F2"));
+                        Console.WriteLine("Per-month check:");
+                        for (int t = 0; t < Months.Length; t++)
+                        {
+                            Console.WriteLine($"{Months[t]}: trainee={trainee[t]:0.###}, exp={experiencedWorker[t]:0.###}, avail={availableHours[t]:0.##}, demand={Demand[t]:0}, feasible={isFeasibleMonth(t)}");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Solver did not find an optimal solution. Status: " + model.Status);
+                    }
+                }
+                catch (GRBException e)
+                {
+                    Console.WriteLine("Gurobi error: " + e.Message);
+                }
 
 
         }
@@ -95,7 +192,7 @@ namespace StewardessPlanning
         // Controleer of maand t haalbaar is: beschikbare uren >= vraag
         static bool isFeasibleMonth(int t)
         {
-            return availableHours[t] >= Demand[t];
+            return availableHours[t] + feasibilityEpsilon >= Demand[t];
         }
 
 
@@ -152,7 +249,10 @@ namespace StewardessPlanning
                 ExperiencedWorker: (double[])experiencedWorker.Clone()
             );
         }
-
+        static double ClampNonNegative(double x)
+        {
+            return x < 0 && Math.Abs(x) < 1e-9 ? 0.0 : x; // kleine negatieve naar 0
+        }
         
 
     }
